@@ -1,6 +1,6 @@
 # SIMBA prototyping
 
-This repository contains prototyping ideas for SIMBA: a Bayesing platform of particle physics simulations. There are several directions in which we have specific interest.
+This repository contains prototyping ideas for SIMBA (Bayesian platform for particle physics simulations). There are several directions in which we have specific interest.
 
 ## Muography 
 

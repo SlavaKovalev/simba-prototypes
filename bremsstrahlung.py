@@ -3,6 +3,8 @@ import math
 ELECTRON_MASS = 9.10938356E-31
 AVOGADRO_NUMBER = 6.02214076E+23
 
+#TODO: please move implementation to numba 
+
 # see https://github.com/niess/pumas/blob/d04dce6388bc0928e7bd6912d5b364df4afa1089/src/pumas.c#L9155
 def bremsstrahlung(Z, A, mu, K, q):
     me = ELECTRON_MASS
