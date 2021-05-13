@@ -2,6 +2,12 @@
 
 This repository contains prototyping ideas for SIMBA (Bayesian platform for particle physics simulations). There are several directions in which we have specific interest.
 
+We recommend to use `conda` for `python` and `C/C++` development. You can rely on the provided environment:
+```
+$ conda env create -f env.yml
+$ conda activate simba 
+```
+
 ## Muography 
 
 A nice introduction and overview of the topic is available from [L. Bonechi et al.](https://arxiv.org/abs/1906.03934).
