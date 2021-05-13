@@ -1,9 +1,7 @@
 #!/bin/python3
+from constants import ELECTRON_MASS, AVOGADRO_NUMBER
 import math
 from numba import njit, double
-
-ELECTRON_MASS = 9.10938356E-31
-AVOGADRO_NUMBER = 6.02214076E+23
 
 # see https://github.com/niess/pumas/blob/d04dce6388bc0928e7bd6912d5b364df4afa1089/src/pumas.c#L9155
 @njit(double(double, double, double, double, double), locals={'me':double, 'sqrte':double, 'phie_factor':double, 'rem':double, 'BZ_n':double, 'BZ_e':double, 'dcs_factor':double, 'delta_factor': double, 'qe_max': double, 'nu':double, 'delta':double,'Phi_e':double, 'Phi_n':double, 'dcs':double})
