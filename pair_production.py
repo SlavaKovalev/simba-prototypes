@@ -1,6 +1,9 @@
 #!/bin/python3
 from constants import ELECTRON_MASS
+from constants import AVOGADRO_NUMBER
 import math
+from numba import njit, double, int32
+
 '''
 The default Bremsstrahlung differential cross section.
   @param Z       The charge number of the target atom.
@@ -10,16 +13,16 @@ The default Bremsstrahlung differential cross section.
   @param q       The kinetic energy lost to the photon.
   @return The corresponding value of the atomic DCS, in m^2 / GeV.
 The differential cross section is computed following R.P. Kokoulin's formulae taken from the Geant4 Physics Reference Manual. '''
-def pair_production(Z, A_, mass, K, q):
+#@njit(double(double,double,double,double), locals={'N_GQ':int32,'xGQ':double[:],'wGQ':double[:],'sqrte':double,'Z13':double,'nu':double,'r':double,'beta':double,'xi_factor':double,'A':double, 'AZ13':double,'cL':double,'cLe':double,'gamma':double,'x0':double,'x1':double,'argmin':double,'tmin':double,'I':double,'i':int32,'eps':double,'rh':double,'rho2':double,'rho21':double,'xi':double,'xi_i':double,'Be':double,'Ye':double,'xe':double,'cLi':double,'Le':double,'Phi_e':double,'Bmu':double,'Ymu':double,'xmu':double,'Lmu':double,'Phi_m':double,'zeta':double,'gamma1':double,'gamma2':double,'E':double,'dcs':double})
+@njit(double(double,double,double,double,double))
+def pair_production(Z, A, mass, K, q):
     '''
     Coefficients for the Gaussian quadrature from:
     https://pomax.github.io/bezierinfo/legendre-gauss.html.
     '''
     N_GQ = 8
-    xGQ = { 0.01985507, 0.10166676, 0.2372338,
-                0.40828268, 0.59171732, 0.7627662, 0.89833324, 0.98014493 }
-    wGQ = { 0.05061427, 0.11119052, 0.15685332,
-                0.18134189, 0.18134189, 0.15685332, 0.11119052, 0.05061427 }
+    xGQ = [ 0.01985507, 0.10166676, 0.2372338, 0.40828268, 0.59171732, 0.7627662, 0.89833324, 0.98014493 ]
+    wGQ = [ 0.05061427, 0.11119052, 0.15685332, 0.18134189, 0.18134189, 0.15685332, 0.11119052, 0.05061427 ]
     # Check the bounds of the energy transfer.
     if q <= 4.0 * ELECTRON_MASS:
         return 0.0
@@ -40,7 +43,7 @@ def pair_production(Z, A_, mass, K, q):
     gamma = 1. + K / mass
     x0 = 4.0 * ELECTRON_MASS / q
     x1 = 6.0 / (gamma * (gamma - q / mass))
-    argmin = (x0 + 2. * (1. - x0) * x1) / (1. + (1. - x1) * sqrt(1. - x0))
+    argmin = (x0 + 2. * (1. - x0) * x1) / (1. + (1. - x1) * math.sqrt(1. - x0))
     if (argmin >= 1.) or (argmin <= 0.):
         return 0.0
     tmin = math.log(argmin)
@@ -60,10 +63,10 @@ def pair_production(Z, A_, mass, K, q):
             Be = 0.5 * xi_i * ((3 - rho2) + 2. * beta * (1. + rho2))
         else:
             Be = ((2. + rho2) * (1. + beta) + xi * (3. + rho2)) * math.log(1. + xi_i) + (rho21 - beta) / (1. + xi) - 3. - rho2
-        Ye = (5. - rho2 + 4. * beta * (1. + rho2)) / (2. * (1. + 3. * beta) * log(3. + xi_i) - rho2 - 2. * beta * (2. - rho2))
+        Ye = (5. - rho2 + 4. * beta * (1. + rho2)) / (2. * (1. + 3. * beta) * math.log(3. + xi_i) - rho2 - 2. * beta * (2. - rho2))
         xe = (1. + xi) * (1. + Ye)
         cLi = cL / rho21
-        Le = math.log(AZ13 * sqrt(xe) * q / (q + cLi * xe)) - 0.5 * math.log(1. + cLe * xe)
+        Le = math.log(AZ13 * math.sqrt(xe) * q / (q + cLi * xe)) - 0.5 * math.log(1. + cLe * xe)
         Phi_e = Be * Le
         if Phi_e < 0.:
             Phi_e = 0.
@@ -102,5 +105,4 @@ def pair_production(Z, A_, mass, K, q):
     # Gather the results and return the macroscopic DCS.
     E = K + mass
     dcs = 1.794664E-34 * Z * (Z + zeta) * (E - q) * I / (q * E)
-    return 0 if dcs < 0. else dcs
-
+    return 0 if dcs < 0. else dcs * 1E+03 * AVOGADRO_NUMBER * (mass + K) / A
