@@ -10,7 +10,9 @@ $ conda activate simba
 
 ## Muography 
 
-A nice introduction and overview of the topic is available from [L. Bonechi et al.](https://arxiv.org/abs/1906.03934).
+For a nice introduction to muography we point out the survey by [L. Bonechi et al.](https://arxiv.org/abs/1906.03934), 
+and further experimental aspects are discussed in the wonderful paper by [W. Trzaska et al.](https://arxiv.org/abs/1902.00868)
+
 Our starting point is [pumas](https://github.com/niess/pumas), a `C99` library for backward Monte-Carlo simulations of muons passing through matter, specifically designed for muography. 
 
 
