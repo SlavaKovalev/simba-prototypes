@@ -1,9 +1,8 @@
 #!/bin/python3
+from constants import ELECTRON_MASS, AVOGADRO_NUMBER
 import math
 from numba import njit, double
 
-ELECTRON_MASS = 9.10938356E-31
-AVOGADRO_NUMBER = 6.02214076E+23
 
 # TODO: provide an implementation where the kinetic energy @param K and the recoil energy @param q
 # are provided as pytorch tensors
