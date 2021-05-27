@@ -4,6 +4,9 @@ from constants import AVOGADRO_NUMBER
 import math
 from numba import njit, double, int32
 
+# TODO: take the Gaussian quadrature routine out of the calculation into a standalone function
+# it will be re-used again and again later.
+
 '''
 The default Bremsstrahlung differential cross section.
   @param Z       The charge number of the target atom.
