@@ -1,11 +1,9 @@
 #!/bin/python3
 
+import constants
+
 from numba import jit,int32,float32
 import numpy as np
-
-@jit(float32(float32))
-def fun(x):
-    return x
 
 @jit
 def legendre_gauss_quadrature(a, b, w, x, fn):
@@ -19,41 +17,19 @@ def legendre_gauss_quadrature(a, b, w, x, fn):
 
 @jit
 def lgq(a, b, n, fn):
-    x_2 = np.array([-0.5773502691896257, 0.5773502691896257], np.float32)
-    w_2 = np.array([1.0, 1.0], np.float32)
-
-    x_3 = np.array([0.0000000000000000, -0.7745966692414834, 0.7745966692414834], np.float32)
-    w_3 = np.array([0.8888888888888888, 0.5555555555555556, 0.5555555555555556], np.float32)
-
-    x_4 = np.array([-0.3399810435848563, 0.3399810435848563, -0.8611363115940526, 0.8611363115940526], np.float32)
-    w_4 = np.array([0.6521451548625461, 0.6521451548625461, 0.3478548451374538, 0.3478548451374538], np.float32)
-
-    x_5 = np.array([0.0, -0.5384693101056831, 0.5384693101056831, -0.9061798459386640, 0.9061798459386640], np.float32)
-    w_5 = np.array([0.5688888888888889, 0.4786286704993665, 0.4786286704993665, 0.2369268850561891, 0.2369268850561891], np.float32)
-
-    x_6 = np.array([0.6612093864662645, -0.6612093864662645, -0.2386191860831969, 0.2386191860831969, -0.9324695142031521, 0.9324695142031521], np.float32)
-    w_6 = np.array([0.3607615730481386, 0.3607615730481386, 0.4679139345726910, 0.4679139345726910, 0.1713244923791704, 0.1713244923791704], np.float32)
-
-    w_7 = np.array([0.417959183673469, 0.3818300505051189, 0.3818300505051189, 0.2797053914892766, 0.2797053914892766, 0.1294849661688697, 0.1294849661688697], np.float32)
-    x_7 = np.array([0.0000000000000000, 0.4058451513773972, -0.4058451513773972, -0.7415311855993945, 0.7415311855993945, -0.9491079123427585, 0.9491079123427585], np.float32)
-
-    w_8 = np.array([0.3626837833783620, 0.3626837833783620, 0.3137066458778873, 0.3137066458778873, 0.2223810344533745, 0.2223810344533745, 0.1012285362903763, 0.1012285362903763], np.float32)
-    x_8 = np.array([-0.1834346424956498, 0.1834346424956498, -0.5255324099163290, 0.5255324099163290, -0.7966664774136267, 0.7966664774136267, -0.9602898564975363, 0.9602898564975363], np.float32)
-
     if 2 == n:
-        return legendre_gauss_quadrature(a, b, w_2, x_2, fn) 
+        return legendre_gauss_quadrature(a, b, constants.w_2, constants.x_2, fn) 
     if 3 == n:
-        return legendre_gauss_quadrature(a, b, w_3, x_3, fn)
+        return legendre_gauss_quadrature(a, b, constants.w_3, constants.x_3, fn)
     if 4 == n:
-        return legendre_gauss_quadrature(a, b, w_4, x_4, fn)
+        return legendre_gauss_quadrature(a, b, constants.w_4, constants.x_4, fn)
     if 5 == n:
-        return legendre_gauss_quadrature(a, b, w_5, x_5, fn)
+        return legendre_gauss_quadrature(a, b, constants.w_5, constants.x_5, fn)
     if 6 == n:
-        return legendre_gauss_quadrature(a, b, w_6, x_6, fn)
+        return legendre_gauss_quadrature(a, b, constants.w_6, constants.x_6, fn)
     if 7 == n:
-        return legendre_gauss_quadrature(a, b, w_7, x_7, fn)
+        return legendre_gauss_quadrature(a, b, constants.w_7, constants.x_7, fn)
     if 8 == n:
-        return legendre_gauss_quadrature(a, b, w_8, x_8, fn)
+        return legendre_gauss_quadrature(a, b, constants.w_8, constants.x_8, fn)
     print(n," unsupported")
     return np.Inf
-
