@@ -24,3 +24,5 @@ As a first task, we propose to investigate the differential cross-sections in `p
  * Compare accuracy and performance across `CPU`/`CUDA`, varying the floating point precision (document your results).
 
  We recommend the [PENELOPE](https://www.oecd-nea.org/science/docs/2011/nsc-doc2011-5) manual as a good introductory read about Monte-Carlo simulations for the passage of particles through matter. Backward Monte-Carlo technique is well described by [V. Niess et al.](https://arxiv.org/abs/1705.05636)
+
+ For research directions in this project have a look at this [tutorial](https://github.com/grinisrit/noa/blob/master/docs/pms/differentiable_programming_pms.ipynb) on differentiable programming for particle physics simulations. 
