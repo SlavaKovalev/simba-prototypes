@@ -1,23 +1,20 @@
-#!/bin/python3
 from constants import AVOGADRO_NUMBER
 import math
-from numba import njit, double
-import numpy as np
+from numba import njit, double, int32
+import torch
 
 
-# TODO: provide an implementation where the kinetic energy @param K and the recoil energy @param q
-# are provided as pytorch tensors
-
-# see https://github.com/niess/pumas/blob/d04dce6388bc0928e7bd6912d5b364df4afa1089/src/pumas.c#L9155
-@njit(double(double, double, double, double, double), locals={'me':double, 'sqrte':double, 'phie_factor':double, 'rem':double, 'BZ_n':double, 'BZ_e':double, 'dcs_factor':double, 'delta_factor': double, 'qe_max': double, 'nu':double, 'delta':double,'Phi_e':double, 'Phi_n':double, 'dcs':double})
-def bremsstrahlung(Z, A, mu, K, q):
+# TODO: Danila, this calculation is not accurate enough
+# see https://github.com/grinisrit/noa/blob/7245bb446deb2415c3ecf92c4561c065625072bc/include/noa/pms/dcs.hh#L122
+@njit(double(double, double, double, int32, double))
+def bremsstrahlung(K, q, A, Z, mu):
     me = 0.511e-3
     sqrte = 1.648721271
     phie_factor = mu / (me * me * sqrte)
     rem = 5.63588E-13 * me / mu
 
-    BZ_n = (202.4 if Z == 1.0 else 182.7) * pow(Z, -1. / 3.)
-    BZ_e = (446.0 if Z == 1.0 else 1429.0) * pow(Z, -2. / 3.)
+    BZ_n = (202.4 if Z == 1 else 182.7) * pow(Z, -1. / 3.)
+    BZ_e = (446.0 if Z == 1 else 1429.0) * pow(Z, -2. / 3.)
     D_n = 1.54 * pow(A, 0.27)
     E = K + mu
     dcs_factor = 7.297182E-07 * rem * rem * Z / E
@@ -39,18 +36,40 @@ def bremsstrahlung(Z, A, mu, K, q):
         Phi_e = 0.0
 
     dcs = dcs_factor * (Z * Phi_n + Phi_e) * (4. / 3. * (1. / nu - 1.) + nu)
-    return 0.0 if dcs < 0.0 else dcs * 1E+3 * AVOGADRO_NUMBER * (mu + K) / A\
+    return 0.0 if dcs < 0.0 else dcs * 1E+3 * double(AVOGADRO_NUMBER) * (mu + K) / A
 
-#Testing
 
-k  = (list(torch.jit.load('noa-test-data/pms/kinetic_energies.pt').parameters())[0]).numpy()
-q  = (list(torch.jit.load('noa-test-data/pms/recoil_energies.pt').parameters())[0]).numpy()
-r  = list(torch.jit.load('noa-test-data/pms/pumas_brems.pt').parameters())[0]
-@njit(parallel=True)
-def func(K, Q):
-    a = np.zeros(70)
-    for i in range(70):
-        a[i] = bremsstrahlung(11, 22, 0.1056583745, double(K[i]), double(Q[i]))   
-    return a
-print (func(k, q))
-print (r)
+@njit('(float64[:], float64[:], float64[:], float64, int32, float64)')
+def _vmap_bremsstrahlung(
+        result,
+        kinetic_energies,
+        recoil_energies,
+        atomic_mass,
+        atomic_number,
+        particle_mass):
+    n = result.shape[0]
+    for i in range(n):
+        result[i] = bremsstrahlung(
+            kinetic_energies[i],
+            recoil_energies[i],
+            atomic_mass,
+            atomic_number,
+            particle_mass)
+    return result
+
+
+def vmap_bremsstrahlung(
+        kinetic_energies,
+        recoil_energies,
+        atomic_mass,
+        atomic_number,
+        particle_mass):
+    result = torch.zeros_like(kinetic_energies)
+    _vmap_bremsstrahlung(
+        result.numpy(),
+        kinetic_energies.numpy(),
+        recoil_energies.numpy(),
+        atomic_mass,
+        atomic_number,
+        particle_mass)
+    return result
