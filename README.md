@@ -16,8 +16,9 @@ and further experimental aspects are discussed in the wonderful paper by [W. Trz
 Our starting point is [pumas](https://github.com/niess/pumas), a `C99` library for backward Monte-Carlo simulations of muons passing through matter, specifically designed for muography. 
 
 
-As a first task, we propose to investigate the differential cross-sections in `pumas v1.0`. Consider the [bremsstrahlung](https://github.com/niess/pumas/blob/d04dce6388bc0928e7bd6912d5b364df4afa1089/src/pumas.c#L9155), [pair production](https://github.com/niess/pumas/blob/d04dce6388bc0928e7bd6912d5b364df4afa1089/src/pumas.c#L9221), [photonuclear](https://github.com/niess/pumas/blob/d04dce6388bc0928e7bd6912d5b364df4afa1089/src/pumas.c#L9515) and [ionisation](https://github.com/niess/pumas/blob/d04dce6388bc0928e7bd6912d5b364df4afa1089/src/pumas.c#L9620) processes: 
+As a first task, we propose to investigate the differential cross-sections in `pumas v1.0`. We muons, we shall consider the [bremsstrahlung](https://github.com/niess/pumas/blob/d04dce6388bc0928e7bd6912d5b364df4afa1089/src/pumas.c#L9155), [pair production](https://github.com/niess/pumas/blob/d04dce6388bc0928e7bd6912d5b364df4afa1089/src/pumas.c#L9221), [photonuclear](https://github.com/niess/pumas/blob/d04dce6388bc0928e7bd6912d5b364df4afa1089/src/pumas.c#L9515) and [ionisation](https://github.com/niess/pumas/blob/d04dce6388bc0928e7bd6912d5b364df4afa1089/src/pumas.c#L9620) processes. Those calculations have been also implemented in [noa](https://github.com/grinisrit/noa), see the [docs](https://github.com/grinisrit/noa/blob/master/docs/pms/muons.ipynb) for more information. 
 
+Your first tasks can be:  
 
  * Re-implement the calculations in `python` using [numba](https://colab.research.google.com/github/cbernet/maldives/blob/master/numba/numba_cuda.ipynb) on both `CPU` and `CUDA` (we advise you to integrate `numba` with `pytorch`, cf. [examples](https://gist.github.com/grinisrit/280e4f14b17fe5ee37e2e254700d9fd0)). 
  * In a `jupyter` notebook, provide the exact formulas for the cross-sections used (you can have a look at [MUM](https://arxiv.org/abs/hep-ph/0010322) for initial reference).
