@@ -1,7 +1,8 @@
 #!/bin/python3
-from constants import ELECTRON_MASS, AVOGADRO_NUMBER
+from constants import AVOGADRO_NUMBER
 import math
 from numba import njit, double
+import numpy as np
 
 
 # TODO: provide an implementation where the kinetic energy @param K and the recoil energy @param q
@@ -10,7 +11,7 @@ from numba import njit, double
 # see https://github.com/niess/pumas/blob/d04dce6388bc0928e7bd6912d5b364df4afa1089/src/pumas.c#L9155
 @njit(double(double, double, double, double, double), locals={'me':double, 'sqrte':double, 'phie_factor':double, 'rem':double, 'BZ_n':double, 'BZ_e':double, 'dcs_factor':double, 'delta_factor': double, 'qe_max': double, 'nu':double, 'delta':double,'Phi_e':double, 'Phi_n':double, 'dcs':double})
 def bremsstrahlung(Z, A, mu, K, q):
-    me = ELECTRON_MASS
+    me = 0.511e-3
     sqrte = 1.648721271
     phie_factor = mu / (me * me * sqrte)
     rem = 5.63588E-13 * me / mu
@@ -38,5 +39,18 @@ def bremsstrahlung(Z, A, mu, K, q):
         Phi_e = 0.0
 
     dcs = dcs_factor * (Z * Phi_n + Phi_e) * (4. / 3. * (1. / nu - 1.) + nu)
-    return 0.0 if dcs < 0.0 else dcs * 1E+03 * AVOGADRO_NUMBER * (mu + K) / A
+    return 0.0 if dcs < 0.0 else dcs * 1E+3 * AVOGADRO_NUMBER * (mu + K) / A\
 
+#Testing
+
+k  = (list(torch.jit.load('noa-test-data/pms/kinetic_energies.pt').parameters())[0]).numpy()
+q  = (list(torch.jit.load('noa-test-data/pms/recoil_energies.pt').parameters())[0]).numpy()
+r  = list(torch.jit.load('noa-test-data/pms/pumas_brems.pt').parameters())[0]
+@njit(parallel=True)
+def func(K, Q):
+    a = np.zeros(70)
+    for i in range(70):
+        a[i] = bremsstrahlung(11, 22, 0.1056583745, double(K[i]), double(Q[i]))   
+    return a
+print (func(k, q))
+print (r)
