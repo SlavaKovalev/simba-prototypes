@@ -3,7 +3,50 @@ from constants import ELECTRON_MASS
 from constants import AVOGADRO_NUMBER
 from constants import x_8, w_8
 import math
-from numba import njit, double, int32
+from numba import njit, float32, int32
+import lgq
+
+'''
+@njit(float32(float32))
+def integrand(t):
+    gamma = 1. + K / mass
+    x0 = 4.0 * ELECTRON_MASS / q
+    x1 = 6.0 / (gamma * (gamma - q / mass))
+    argmin = (x0 + 2. * (1. - x0) * x1) / (1. + (1. - x1) * math.sqrt(1. - x0))
+    tmin = math.log(argmin)
+    eps = math.exp(t * tmin)
+    rho = 1. - eps
+    rho2 = rho * rho
+    rho21 = eps * (2. - eps)
+    xi = xi_factor * rho21
+    xi_i = 1. / xi
+
+    # Compute the e-term
+    if xi >= 1E+03:
+        Be = 0.5 * xi_i * ((3 - rho2) + 2. * beta * (1. + rho2))
+    else:
+        Be = ((2. + rho2) * (1. + beta) + xi * (3. + rho2)) * log(1. + xi_i) + (rho21 - beta) / (1. + xi) - 3. - rho2
+    Ye = (5. - rho2 + 4. * beta * (1. + rho2)) / (2. * (1. + 3. * beta) * log(3. + xi_i) - rho2 - 2. * beta * (2. - rho2))
+    xe = (1. + xi) * (1. + Ye)
+    cLi = cL / rho21
+    Le = math.log(AZ13 * sqrt(xe) * recoil_energy / (recoil_energy + cLi * xe)) - 0.5 * log(1. + cLe * xe)
+    Phi_e = Be * Le
+    if Phi_e < 0.:
+        Phi_e = 0.
+    # Compute the mass-term
+    Bmu = 0.
+    if xi <= 1E-03:
+        Bmu = 0.5 * xi * (5. - rho2 + beta * (3. + rho2))
+    else:
+        Bmu = ((1. + rho2) * (1. + 1.5 * beta) - xi_i * (1. + 2. * beta) * rho21) * math.log(1. + xi) + xi * (rho21 - beta) / (1. + xi) + (1. + 2. * beta) * rho21
+    Ymu = (4. + rho2 + 3. * beta * (1. + rho2)) / ((1. + rho2) * (1.5 + 2. * beta) * log(3. + xi) + 1. - 1.5 * rho2)
+    xmu = (1. + xi) * (1. + Ymu)
+    Lmu = math.log(r * AZ13 * recoil_energy / (1.5 * Z13 * (recoil_energy + cLi * xmu)))
+    Phi_mu = Bmu * Lmu
+    if Phi_mu < 0.:
+        Phi_mu = 0.
+    return -(Phi_e + Phi_mu / (r * r)) * (1. - rho) * tmin
+'''
 
 '''
 The default Bremsstrahlung differential cross section.
@@ -14,8 +57,7 @@ The default Bremsstrahlung differential cross section.
   @param q       The kinetic energy lost to the photon.
   @return The corresponding value of the atomic DCS, in m^2 / GeV.
 The differential cross section is computed following R.P. Kokoulin's formulae taken from the Geant4 Physics Reference Manual. '''
-#@njit(double(double,double,double,double), locals={'sqrte':double,'Z13':double,'nu':double,'r':double,'beta':double,'xi_factor':double,'A':double, 'AZ13':double,'cL':double,'cLe':double,'gamma':double,'x0':double,'x1':double,'argmin':double,'tmin':double,'I':double,'i':int32,'eps':double,'rh':double,'rho2':double,'rho21':double,'xi':double,'xi_i':double,'Be':double,'Ye':double,'xe':double,'cLi':double,'Le':double,'Phi_e':double,'Bmu':double,'Ymu':double,'xmu':double,'Lmu':double,'Phi_m':double,'zeta':double,'gamma1':double,'gamma2':double,'E':double,'dcs':double})
-@njit(double(double,double,double,double,double))
+@njit
 def pair_production(Z, A, mass, K, q):
     '''
     Coefficients for the Gaussian quadrature from:
@@ -46,42 +88,40 @@ def pair_production(Z, A, mass, K, q):
         return 0.0
     tmin = math.log(argmin)
     # Compute the integral over t = ln(1-rho).
-    I = 0.0
-    i = 0
-    for i in range(len(x_8)):
-        eps = math.exp(x_8[i] * tmin)
-        rho = 1. - eps
-        rho2 = rho * rho
-        rho21 = eps * (2. - eps)
-        xi = xi_factor * rho21
-        xi_i = 1. / xi
-        #Compute the e-term. 
-        Be = 0.
-        if xi >= 1E+03:
-            Be = 0.5 * xi_i * ((3 - rho2) + 2. * beta * (1. + rho2))
-        else:
-            Be = ((2. + rho2) * (1. + beta) + xi * (3. + rho2)) * math.log(1. + xi_i) + (rho21 - beta) / (1. + xi) - 3. - rho2
-        Ye = (5. - rho2 + 4. * beta * (1. + rho2)) / (2. * (1. + 3. * beta) * math.log(3. + xi_i) - rho2 - 2. * beta * (2. - rho2))
-        xe = (1. + xi) * (1. + Ye)
-        cLi = cL / rho21
-        Le = math.log(AZ13 * math.sqrt(xe) * q / (q + cLi * xe)) - 0.5 * math.log(1. + cLe * xe)
-        Phi_e = Be * Le
-        if Phi_e < 0.:
-            Phi_e = 0.
-        # Compute the mu-term.
-        Bmu = 0.
-        if xi <= 1E-03:
-            Bmu = 0.5 * xi * (5. - rho2 + beta * (3. + rho2))
-        else:
-            Bmu = ((1. + rho2) * (1. + 1.5 * beta) - xi_i * (1. + 2. * beta) * rho21) * math.log(1. + xi) + xi * (rho21 - beta) / (1. + xi) + (1. + 2. * beta) * rho21
-        Ymu = (4. + rho2 + 3. * beta * (1. + rho2)) / ((1. + rho2) * (1.5 + 2. * beta) * math.log(3. + xi) + 1. - 1.5 * rho2)
-        xmu = (1. + xi) * (1. + Ymu)
-        Lmu = math.log(r * AZ13 * q / (1.5 * Z13 * (q + cLi * xmu)))
-        Phi_mu = Bmu * Lmu
-        if Phi_mu < 0.:
-            Phi_mu = 0.
-        # Update the t-integral.
-        I -= (Phi_e + Phi_mu / (r * r)) * (1. - rho) * w_8[i] * tmin
+    def integrand(t):
+      eps = math.exp(t * tmin)
+      rho = 1. - eps
+      rho2 = rho * rho
+      rho21 = eps * (2. - eps)
+      xi = xi_factor * rho21
+      xi_i = 1. / xi
+      # Compute the e-term
+      if xi >= 1E+03:
+          Be = 0.5 * xi_i * ((3 - rho2) + 2. * beta * (1. + rho2))
+      else:
+          Be = ((2. + rho2) * (1. + beta) + xi * (3. + rho2)) * log(1. + xi_i) + (rho21 - beta) / (1. + xi) - 3. - rho2
+      Ye = (5. - rho2 + 4. * beta * (1. + rho2)) / (2. * (1. + 3. * beta) * log(3. + xi_i) - rho2 - 2. * beta * (2. - rho2))
+      xe = (1. + xi) * (1. + Ye)
+      cLi = cL / rho21
+      Le = math.log(AZ13 * sqrt(xe) * recoil_energy / (recoil_energy + cLi * xe)) - 0.5 * log(1. + cLe * xe)
+      Phi_e = Be * Le
+      if Phi_e < 0.:
+          Phi_e = 0.
+      # Compute the mass-term
+      Bmu = 0.
+      if xi <= 1E-03:
+          Bmu = 0.5 * xi * (5. - rho2 + beta * (3. + rho2))
+      else:
+          Bmu = ((1. + rho2) * (1. + 1.5 * beta) - xi_i * (1. + 2. * beta) * rho21) * math.log(1. + xi) + xi * (rho21 - beta) / (1. + xi) + (1. + 2. * beta) * rho21
+      Ymu = (4. + rho2 + 3. * beta * (1. + rho2)) / ((1. + rho2) * (1.5 + 2. * beta) * log(3. + xi) + 1. - 1.5 * rho2)
+      xmu = (1. + xi) * (1. + Ymu)
+      Lmu = math.log(r * AZ13 * recoil_energy / (1.5 * Z13 * (recoil_energy + cLi * xmu)))
+      Phi_mu = Bmu * Lmu
+      if Phi_mu < 0.:
+          Phi_mu = 0.
+      return -(Phi_e + Phi_mu / (r * r)) * (1. - rho) * tmin
+
+    I = lgq.lgq(0., 1., 8, integrand)
     # Atomic electrons form factor.
     zeta = 0.
     if gamma <= 35.:
@@ -105,3 +145,4 @@ def pair_production(Z, A, mass, K, q):
     dcs = 1.794664E-34 * Z * (Z + zeta) * (E - q) * I / (q * E)
     return 0 if dcs < 0. else dcs * 1E+03 * AVOGADRO_NUMBER * (mass + K) / A
 
+print(pair_production(1,1,1,1,1))

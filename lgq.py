@@ -2,10 +2,10 @@
 
 import constants
 
-from numba import jit,int32,float32
+from numba import njit,int32,float32
 import numpy as np
 
-@jit
+@njit
 def legendre_gauss_quadrature(a, b, w, x, fn):
     bpa2 = (b + a) / 2.0
     bma2 = (b - a) / 2.0
@@ -15,7 +15,7 @@ def legendre_gauss_quadrature(a, b, w, x, fn):
         res = res + w[i] * fn(bma2 * x[i] + bpa2)
     return res * bma2;
 
-@jit
+@njit
 def lgq(a, b, n, fn):
     if 2 == n:
         return legendre_gauss_quadrature(a, b, constants.w_2, constants.x_2, fn) 
