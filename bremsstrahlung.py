@@ -1,4 +1,4 @@
-from constants import AVOGADRO_NUMBER
+import constants
 import math
 from numba import njit, double, int32
 import torch
@@ -8,7 +8,7 @@ import torch
 # see https://github.com/grinisrit/noa/blob/7245bb446deb2415c3ecf92c4561c065625072bc/include/noa/pms/dcs.hh#L122
 @njit(double(double, double, double, int32, double))
 def bremsstrahlung(K, q, A, Z, mu):
-    me = 0.511e-3
+    me = constants.ELECTRON_MASS
     sqrte = 1.648721271
     phie_factor = mu / (me * me * sqrte)
     rem = 5.63588E-13 * me / mu
@@ -36,7 +36,7 @@ def bremsstrahlung(K, q, A, Z, mu):
         Phi_e = 0.0
 
     dcs = dcs_factor * (Z * Phi_n + Phi_e) * (4. / 3. * (1. / nu - 1.) + nu)
-    return 0.0 if dcs < 0.0 else dcs * 1E+3 * double(AVOGADRO_NUMBER) * (mu + K) / A
+    return 0.0 if dcs < 0.0 else dcs * 1E+3 * double(constants.AVOGADRO_NUMBER) * (mu + K) / A
 
 
 @njit('(float64[:], float64[:], float64[:], float64, int32, float64)')
