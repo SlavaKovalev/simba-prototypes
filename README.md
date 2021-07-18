@@ -37,6 +37,8 @@ We recommend the Oxford lecture [notes](https://www2.physics.ox.ac.uk/sites/defa
 on the passage of particles through matter and 
 the [PENELOPE](https://www.oecd-nea.org/science/docs/2011/nsc-doc2011-5) manual 
 as a good introductory read about Monte-Carlo simulations. 
+[Geant4](https://geant4-userdoc.web.cern.ch/UsersGuides/PhysicsReferenceManual/fo/PhysicsReferenceManual.pdf)
+reference is also a useful resource.
 Backward Monte-Carlo technique is well described by [V. Niess et al.](https://arxiv.org/abs/1705.05636).
 
  For research directions in this project have a look at 
