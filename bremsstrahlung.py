@@ -4,7 +4,6 @@ from numba import njit, double, int32
 import torch
 
 
-# TODO: Danila, this calculation is not accurate enough
 # see https://github.com/grinisrit/noa/blob/7245bb446deb2415c3ecf92c4561c065625072bc/include/noa/pms/dcs.hh#L122
 @njit(double(double, double, double, int32, double))
 def bremsstrahlung(K, q, A, Z, mu):
