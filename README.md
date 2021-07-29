@@ -31,7 +31,7 @@ Your first tasks can be:
 
  * Re-implement the calculations in `python` using [numba](https://colab.research.google.com/github/cbernet/maldives/blob/master/numba/numba_cuda.ipynb) on both `CPU` and `CUDA` (we advise you to integrate `numba` with `pytorch`, cf. [examples](https://gist.github.com/grinisrit/280e4f14b17fe5ee37e2e254700d9fd0)). 
  * In a `jupyter` notebook, provide the exact formulas for the cross-sections used (you can have a look at [MUM](https://arxiv.org/abs/hep-ph/0010322) for initial reference).
- * Compare accuracy and performance across `CPU`/`CUDA`, varying the floating point precision (document your results).
+ * Compare accuracy and performance across `CPU`/`CUDA` (document your results).
 
 We recommend the Oxford lecture [notes](https://www2.physics.ox.ac.uk/sites/default/files/Passage.pdf) 
 on the passage of particles through matter and 
