@@ -1,5 +1,8 @@
 ELECTRON_MASS = 0.510998910E-03 # GeV/c^2
 AVOGADRO_NUMBER = 6.02214076E+23
+# optimizing Avogadro Number special for bremsstrahlung
+# see bremsstrahlung.py
+AVOGADRO_NUMBER_brems = 6.02214076
 MUON_MASS = 0.10565839 # GeV/c^2
 
 

@@ -10,7 +10,15 @@ def bremsstrahlung(K, q, A, Z, mu):
     me = constants.ELECTRON_MASS
     sqrte = 1.648721271
     phie_factor = mu / (me * me * sqrte)
-    rem = 5.63588E-13 * me / mu
+    # original line is
+    # rem = 5.63588E-13 * me / mu
+    # But we use AVOGARO_NUMBER_brems and remove 1E+3 
+    # from final formula, see below.
+    # For rem^2 we have 1E-26 order
+    # For original AVOGADRO_NUMBER 1E+23
+    # And we use 1E+3 in final calculation.
+    # So 1E+23*1E+3*1E-26 = 1E+0 = 1
+    rem = 5.63588 * me / mu
 
     BZ_n = (202.4 if Z == 1 else 182.7) * pow(Z, -1. / 3.)
     BZ_e = (446.0 if Z == 1 else 1429.0) * pow(Z, -2. / 3.)
@@ -35,7 +43,9 @@ def bremsstrahlung(K, q, A, Z, mu):
         Phi_e = 0.0
 
     dcs = dcs_factor * (Z * Phi_n + Phi_e) * (4. / 3. * (1. / nu - 1.) + nu)
-    return 0.0 if dcs < 0.0 else dcs * 1E+3 * double(constants.AVOGADRO_NUMBER) * (mu + K) / A
+    # original line is
+    # return 0.0 if dcs < 0.0 else dcs * 1E+3 * double(constants.AVOGADRO_NUMBER) * (mu + K) / A
+    return 0.0 if dcs < 0.0 else dcs * double(constants.AVOGADRO_NUMBER_brems) * (mu + K) / A
 
 
 @njit('(float64[:], float64[:], float64[:], float64, int32, float64)')
