@@ -3,11 +3,11 @@ from constants import ELECTRON_MASS
 from constants import AVOGADRO_NUMBER
 from constants import x_8, w_8
 import math
-from numba import njit, float32, int32
+from numba import njit, float64, int32
 import lgq
 
-'''
-@njit(float32(float32))
+
+@njit
 def integrand(t):
     gamma = 1. + K / mass
     x0 = 4.0 * ELECTRON_MASS / q
@@ -46,10 +46,10 @@ def integrand(t):
     if Phi_mu < 0.:
         Phi_mu = 0.
     return -(Phi_e + Phi_mu / (r * r)) * (1. - rho) * tmin
-'''
+
 
 '''
-The default Bremsstrahlung differential cross section.
+The default pair production differential cross section.
   @param Z       The charge number of the target atom.
   @param A       The mass number of the target atom.
   @param mu      The projectile rest mass, in GeV
@@ -88,40 +88,7 @@ def pair_production(Z, A, mass, K, q):
         return 0.0
     tmin = math.log(argmin)
     # Compute the integral over t = ln(1-rho).
-    def integrand(t):
-      eps = math.exp(t * tmin)
-      rho = 1. - eps
-      rho2 = rho * rho
-      rho21 = eps * (2. - eps)
-      xi = xi_factor * rho21
-      xi_i = 1. / xi
-      # Compute the e-term
-      if xi >= 1E+03:
-          Be = 0.5 * xi_i * ((3 - rho2) + 2. * beta * (1. + rho2))
-      else:
-          Be = ((2. + rho2) * (1. + beta) + xi * (3. + rho2)) * log(1. + xi_i) + (rho21 - beta) / (1. + xi) - 3. - rho2
-      Ye = (5. - rho2 + 4. * beta * (1. + rho2)) / (2. * (1. + 3. * beta) * log(3. + xi_i) - rho2 - 2. * beta * (2. - rho2))
-      xe = (1. + xi) * (1. + Ye)
-      cLi = cL / rho21
-      Le = math.log(AZ13 * sqrt(xe) * recoil_energy / (recoil_energy + cLi * xe)) - 0.5 * log(1. + cLe * xe)
-      Phi_e = Be * Le
-      if Phi_e < 0.:
-          Phi_e = 0.
-      # Compute the mass-term
-      Bmu = 0.
-      if xi <= 1E-03:
-          Bmu = 0.5 * xi * (5. - rho2 + beta * (3. + rho2))
-      else:
-          Bmu = ((1. + rho2) * (1. + 1.5 * beta) - xi_i * (1. + 2. * beta) * rho21) * math.log(1. + xi) + xi * (rho21 - beta) / (1. + xi) + (1. + 2. * beta) * rho21
-      Ymu = (4. + rho2 + 3. * beta * (1. + rho2)) / ((1. + rho2) * (1.5 + 2. * beta) * log(3. + xi) + 1. - 1.5 * rho2)
-      xmu = (1. + xi) * (1. + Ymu)
-      Lmu = math.log(r * AZ13 * recoil_energy / (1.5 * Z13 * (recoil_energy + cLi * xmu)))
-      Phi_mu = Bmu * Lmu
-      if Phi_mu < 0.:
-          Phi_mu = 0.
-      return -(Phi_e + Phi_mu / (r * r)) * (1. - rho) * tmin
-
-    I = lgq.lgq(0., 1., 8, integrand)
+    I = lgq.legendre_gauss_quadrature(0., 1., 8, integrand)
     # Atomic electrons form factor.
     zeta = 0.
     if gamma <= 35.:
