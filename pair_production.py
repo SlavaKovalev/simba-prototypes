@@ -1,14 +1,67 @@
-#!/bin/python3
 from constants import ELECTRON_MASS
 from constants import AVOGADRO_NUMBER
+from constants import x_8, w_8
 import math
-from numba import njit, double, int32
+from numba import njit, float64, int32
+from numba.core import types
+from numba.typed import Dict
+import lgq
 
-# TODO: take the Gaussian quadrature routine out of the calculation into a standalone function
-# it will be re-used again and again later.
+
+@njit
+def integrand(t, args = None):
+    K             = args['K']
+    mass          = args['mass']
+    q             = args['q']
+    tmin          = args['tmin']
+    xi_factor     = args['xi_factor']
+    gamma         = args['gamma']
+    x0            = args['x0']
+    x1            = args['x1']
+    argmin        = args['argmin']
+    beta          = args['beta']
+    cL            = args['cL']
+    cLe           = args['cLe']
+    AZ13          = args['AZ13']
+    r             = args['r']
+    Z13           = args['Z13']
+
+    eps = math.exp(t * tmin)
+    rho = 1. - eps
+    rho2 = rho * rho
+    rho21 = eps * (2. - eps)
+    xi = xi_factor * rho21
+    xi_i = 1. / xi
+
+    # Compute the e-term
+    if xi >= 1E+03:
+        Be = 0.5 * xi_i * ((3 - rho2) + 2. * beta * (1. + rho2))
+    else:
+        Be = ((2. + rho2) * (1. + beta) + xi * (3. + rho2)) * math.log(1. + xi_i) + (rho21 - beta) / (1. + xi) - 3. - rho2
+    Ye = (5. - rho2 + 4. * beta * (1. + rho2)) / (2. * (1. + 3. * beta) * math.log(3. + xi_i) - rho2 - 2. * beta * (2. - rho2))
+    xe = (1. + xi) * (1. + Ye)
+    cLi = cL / rho21
+    Le = math.log(AZ13 * math.sqrt(xe) * q / (q + cLi * xe)) - 0.5 * math.log(1. + cLe * xe)
+    Phi_e = Be * Le
+    if Phi_e < 0.:
+        Phi_e = 0.
+    # Compute the mass-term
+    Bmu = 0.
+    if xi <= 1E-03:
+        Bmu = 0.5 * xi * (5. - rho2 + beta * (3. + rho2))
+    else:
+        Bmu = ((1. + rho2) * (1. + 1.5 * beta) - xi_i * (1. + 2. * beta) * rho21) * math.log(1. + xi) + xi * (rho21 - beta) / (1. + xi) + (1. + 2. * beta) * rho21
+    Ymu = (4. + rho2 + 3. * beta * (1. + rho2)) / ((1. + rho2) * (1.5 + 2. * beta) * math.log(3. + xi) + 1. - 1.5 * rho2)
+    xmu = (1. + xi) * (1. + Ymu)
+    Lmu = math.log(r * AZ13 * q / (1.5 * Z13 * (q + cLi * xmu)))
+    Phi_mu = Bmu * Lmu
+    if Phi_mu < 0.:
+        Phi_mu = 0.
+    return -(Phi_e + Phi_mu / (r * r)) * (1. - rho) * tmin
+
 
 '''
-The default Bremsstrahlung differential cross section.
+The default pair production differential cross section.
   @param Z       The charge number of the target atom.
   @param A       The mass number of the target atom.
   @param mu      The projectile rest mass, in GeV
@@ -16,16 +69,12 @@ The default Bremsstrahlung differential cross section.
   @param q       The kinetic energy lost to the photon.
   @return The corresponding value of the atomic DCS, in m^2 / GeV.
 The differential cross section is computed following R.P. Kokoulin's formulae taken from the Geant4 Physics Reference Manual. '''
-#@njit(double(double,double,double,double), locals={'N_GQ':int32,'xGQ':double[:],'wGQ':double[:],'sqrte':double,'Z13':double,'nu':double,'r':double,'beta':double,'xi_factor':double,'A':double, 'AZ13':double,'cL':double,'cLe':double,'gamma':double,'x0':double,'x1':double,'argmin':double,'tmin':double,'I':double,'i':int32,'eps':double,'rh':double,'rho2':double,'rho21':double,'xi':double,'xi_i':double,'Be':double,'Ye':double,'xe':double,'cLi':double,'Le':double,'Phi_e':double,'Bmu':double,'Ymu':double,'xmu':double,'Lmu':double,'Phi_m':double,'zeta':double,'gamma1':double,'gamma2':double,'E':double,'dcs':double})
-@njit(double(double,double,double,double,double))
+@njit
 def pair_production(Z, A, mass, K, q):
     '''
     Coefficients for the Gaussian quadrature from:
     https://pomax.github.io/bezierinfo/legendre-gauss.html.
     '''
-    N_GQ = 8
-    xGQ = [ 0.01985507, 0.10166676, 0.2372338, 0.40828268, 0.59171732, 0.7627662, 0.89833324, 0.98014493 ]
-    wGQ = [ 0.05061427, 0.11119052, 0.15685332, 0.18134189, 0.18134189, 0.15685332, 0.11119052, 0.05061427 ]
     # Check the bounds of the energy transfer.
     if q <= 4.0 * ELECTRON_MASS:
         return 0.0
@@ -51,42 +100,24 @@ def pair_production(Z, A, mass, K, q):
         return 0.0
     tmin = math.log(argmin)
     # Compute the integral over t = ln(1-rho).
-    I = 0.0
-    i = 0
-    for i in range(8):
-        eps = math.exp(xGQ[i] * tmin)
-        rho = 1. - eps
-        rho2 = rho * rho
-        rho21 = eps * (2. - eps)
-        xi = xi_factor * rho21
-        xi_i = 1. / xi
-        #Compute the e-term. 
-        Be = 0.
-        if xi >= 1E+03:
-            Be = 0.5 * xi_i * ((3 - rho2) + 2. * beta * (1. + rho2))
-        else:
-            Be = ((2. + rho2) * (1. + beta) + xi * (3. + rho2)) * math.log(1. + xi_i) + (rho21 - beta) / (1. + xi) - 3. - rho2
-        Ye = (5. - rho2 + 4. * beta * (1. + rho2)) / (2. * (1. + 3. * beta) * math.log(3. + xi_i) - rho2 - 2. * beta * (2. - rho2))
-        xe = (1. + xi) * (1. + Ye)
-        cLi = cL / rho21
-        Le = math.log(AZ13 * math.sqrt(xe) * q / (q + cLi * xe)) - 0.5 * math.log(1. + cLe * xe)
-        Phi_e = Be * Le
-        if Phi_e < 0.:
-            Phi_e = 0.
-        # Compute the mu-term.
-        Bmu = 0.
-        if xi <= 1E-03:
-            Bmu = 0.5 * xi * (5. - rho2 + beta * (3. + rho2))
-        else:
-            Bmu = ((1. + rho2) * (1. + 1.5 * beta) - xi_i * (1. + 2. * beta) * rho21) * math.log(1. + xi) + xi * (rho21 - beta) / (1. + xi) + (1. + 2. * beta) * rho21
-        Ymu = (4. + rho2 + 3. * beta * (1. + rho2)) / ((1. + rho2) * (1.5 + 2. * beta) * math.log(3. + xi) + 1. - 1.5 * rho2)
-        xmu = (1. + xi) * (1. + Ymu)
-        Lmu = math.log(r * AZ13 * q / (1.5 * Z13 * (q + cLi * xmu)))
-        Phi_mu = Bmu * Lmu
-        if Phi_mu < 0.:
-            Phi_mu = 0.
-        # Update the t-integral.
-        I -= (Phi_e + Phi_mu / (r * r)) * (1. - rho) * wGQ[i] * tmin
+    args = Dict.empty(key_type = types.unicode_type, value_type = types.float64)
+    args['K'] = K
+    args['q'] = q
+    args['mass'] = mass
+    args['tmin'] = tmin
+    args['xi_factor'] = xi_factor
+    args['gamma'] = gamma
+    args['x0'] = x0
+    args['x1'] = x1
+    args['argmin'] = argmin
+    args['beta'] = beta
+    args['cL'] = cL
+    args['cLe'] = cLe
+    args['AZ13'] = AZ13
+    args['r'] = r
+    args['Z13'] = Z13
+    
+    I = lgq.legendre_gauss_quadrature(0., 1., 9, integrand, args)
     # Atomic electrons form factor.
     zeta = 0.
     if gamma <= 35.:
