@@ -17,6 +17,9 @@ class AtomicElement:
 
 STANDARD_ROCK = AtomicElement(22.0, 0.1364E-6, 11)
 
+
+# Coefficients for the Gaussian quadrature from: 
+# https://pomax.github.io/bezierinfo/legendre-gauss.html
 x_2 = np.array([-0.5773502691896257, 0.5773502691896257], np.float64)
 w_2 = np.array([1.0, 1.0], np.float64)
 
