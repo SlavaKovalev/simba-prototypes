@@ -1,19 +1,31 @@
-#!/bin/python3
 from constants import ELECTRON_MASS
 from constants import AVOGADRO_NUMBER
 from constants import x_8, w_8
 import math
 from numba import njit, float64, int32
+from numba.core import types
+from numba.typed import Dict
 import lgq
 
 
 @njit
-def integrand(t):
-    gamma = 1. + K / mass
-    x0 = 4.0 * ELECTRON_MASS / q
-    x1 = 6.0 / (gamma * (gamma - q / mass))
-    argmin = (x0 + 2. * (1. - x0) * x1) / (1. + (1. - x1) * math.sqrt(1. - x0))
-    tmin = math.log(argmin)
+def integrand(t, args = None):
+    K             = args['K']
+    mass          = args['mass']
+    q             = args['q']
+    tmin          = args['tmin']
+    xi_factor     = args['xi_factor']
+    gamma         = args['gamma']
+    x0            = args['x0']
+    x1            = args['x1']
+    argmin        = args['argmin']
+    beta          = args['beta']
+    cL            = args['cL']
+    cLe           = args['cLe']
+    AZ13          = args['AZ13']
+    r             = args['r']
+    Z13           = args['Z13']
+
     eps = math.exp(t * tmin)
     rho = 1. - eps
     rho2 = rho * rho
@@ -25,11 +37,11 @@ def integrand(t):
     if xi >= 1E+03:
         Be = 0.5 * xi_i * ((3 - rho2) + 2. * beta * (1. + rho2))
     else:
-        Be = ((2. + rho2) * (1. + beta) + xi * (3. + rho2)) * log(1. + xi_i) + (rho21 - beta) / (1. + xi) - 3. - rho2
-    Ye = (5. - rho2 + 4. * beta * (1. + rho2)) / (2. * (1. + 3. * beta) * log(3. + xi_i) - rho2 - 2. * beta * (2. - rho2))
+        Be = ((2. + rho2) * (1. + beta) + xi * (3. + rho2)) * math.log(1. + xi_i) + (rho21 - beta) / (1. + xi) - 3. - rho2
+    Ye = (5. - rho2 + 4. * beta * (1. + rho2)) / (2. * (1. + 3. * beta) * math.log(3. + xi_i) - rho2 - 2. * beta * (2. - rho2))
     xe = (1. + xi) * (1. + Ye)
     cLi = cL / rho21
-    Le = math.log(AZ13 * sqrt(xe) * recoil_energy / (recoil_energy + cLi * xe)) - 0.5 * log(1. + cLe * xe)
+    Le = math.log(AZ13 * math.sqrt(xe) * q / (q + cLi * xe)) - 0.5 * math.log(1. + cLe * xe)
     Phi_e = Be * Le
     if Phi_e < 0.:
         Phi_e = 0.
@@ -39,9 +51,9 @@ def integrand(t):
         Bmu = 0.5 * xi * (5. - rho2 + beta * (3. + rho2))
     else:
         Bmu = ((1. + rho2) * (1. + 1.5 * beta) - xi_i * (1. + 2. * beta) * rho21) * math.log(1. + xi) + xi * (rho21 - beta) / (1. + xi) + (1. + 2. * beta) * rho21
-    Ymu = (4. + rho2 + 3. * beta * (1. + rho2)) / ((1. + rho2) * (1.5 + 2. * beta) * log(3. + xi) + 1. - 1.5 * rho2)
+    Ymu = (4. + rho2 + 3. * beta * (1. + rho2)) / ((1. + rho2) * (1.5 + 2. * beta) * math.log(3. + xi) + 1. - 1.5 * rho2)
     xmu = (1. + xi) * (1. + Ymu)
-    Lmu = math.log(r * AZ13 * recoil_energy / (1.5 * Z13 * (recoil_energy + cLi * xmu)))
+    Lmu = math.log(r * AZ13 * q / (1.5 * Z13 * (q + cLi * xmu)))
     Phi_mu = Bmu * Lmu
     if Phi_mu < 0.:
         Phi_mu = 0.
@@ -88,7 +100,24 @@ def pair_production(Z, A, mass, K, q):
         return 0.0
     tmin = math.log(argmin)
     # Compute the integral over t = ln(1-rho).
-    I = lgq.legendre_gauss_quadrature(0., 1., 8, integrand)
+    args = Dict.empty(key_type = types.unicode_type, value_type = types.float64)
+    args['K'] = K
+    args['q'] = q
+    args['mass'] = mass
+    args['tmin'] = tmin
+    args['xi_factor'] = xi_factor
+    args['gamma'] = gamma
+    args['x0'] = x0
+    args['x1'] = x1
+    args['argmin'] = argmin
+    args['beta'] = beta
+    args['cL'] = cL
+    args['cLe'] = cLe
+    args['AZ13'] = AZ13
+    args['r'] = r
+    args['Z13'] = Z13
+    
+    I = lgq.legendre_gauss_quadrature(0., 1., 9, integrand, args)
     # Atomic electrons form factor.
     zeta = 0.
     if gamma <= 35.:
