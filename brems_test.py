@@ -1,7 +1,6 @@
 import torch
 import constants
 import utils
-#import bremsstrahlung_pure_python
 import bremsstrahlung
 import os
 import sys
